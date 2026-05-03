@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; }
+    .search-container { max-width: 600px; margin: 50px auto; }
+    .card { border: none; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    .btn-search { background: #2c3e50; color: white; border-radius: 8px; }
+    #resultArea { display: none; margin-top: 30px; }
+    .status-lulus { color: #198754; font-weight: bold; }
+    .status-tidak-lulus { color: #dc3545; font-weight: bold; }
+    .status-terbaik { color: #ffc107; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+    
+    @media print {
+      body * { visibility: hidden; }
+      #printSection, #printSection * { visibility: visible; }
+      #printSection { position: absolute; left: 0; top: 0; width: 100%; }
+      .no-print { display: none; }
+    }
+  </style>
+  <style>
+    /* ... (CSS sebelumnya tetap ada) ... */
+
+    @media print {
+      body { background-color: white !important; }
+      .no-print { display: none !important; }
+      
+      .card { 
+        border: none !important; 
+        box-shadow: none !important; 
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      /* Memastikan gambar tampil di print */
+      img { 
+        max-width: 100% !important; 
+        print-color-adjust: exact; 
+        -webkit-print-color-adjust: exact; 
+      }
+
+      /* Pengaturan margin kertas */
+      @page {
+        size: A4;
+        margin: 1.5cm;
+      }
+      
+      #printSection {
+        display: block !important;
+        width: 100% !important;
+      }
+    }
+
+    /* Mempercantik tampilan nama siswa agar lebih tegas */
+    #resNama { letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<div class="container search-container">
+  <div class="header-banner-wrapper mb-0">
+    <img src="https://lh3.googleusercontent.com/d/1-O-55fG3oiLlsRXe8kag1PROa0nIESrp" id="mainBanner" class="img-fluid banner-img" alt="Banner Portal Pengumuman">
+  </div>
+
+  <div class="card p-4 search-card">
+    <div class="text-center mb-4">
+      <h3 class="fw-bold">Pencarian Data Siswa</h3>
+      <p class="text-muted small">Silakan masukkan NISN Anda untuk melihat hasil pengumuman.</p>
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label fw-bold">Nomor Induk Siswa Nasional (NISN)</label>
+      <div class="input-group">
+        <input type="text" id="nisnInput" class="form-control" placeholder="Masukkan 10 digit NISN">
+        <button class="btn btn-search px-4" onclick="prosesCari()" id="btnCari">Cari Data</button>
+      </div>
+    </div>
+    <div id="loader" class="text-center d-none">
+      <div class="spinner-border text-success" role="status"></div>
+      <p class="small mt-2">Sedang memproses data...</p>
+    </div>
+  </div>
+
+  <div id="resultArea">
+    <div class="card p-4 shadow-sm" id="printSection">
+      
+      <div class="text-center mb-4 border-bottom pb-2">
+        <img src="https://lh3.googleusercontent.com/d/1Io35XAQ_CcN2wmdyA2q2QF57XQ8eGCau" class="img-fluid" style="max-height: 300px; width: auto;" alt="Header Madrasah">
+      </div>
+
+      <div class="text-center border-bottom pb-3 mb-3">
+        <h4 class="fw-bold">SURAT KETERANGAN KELULUSAN SEMENTARA</h4>
+        <p class="mb-0">Nomor : 105.1/MTs.13.12.18/06/2026</p>
+      </div>
+      
+      <table class="table table-borderless">
+        <tr><td width="40%">Nama Lengkap</td><td>: <span id="resNama" class="fw-bold text-uppercase"></span></td></tr>
+        <tr><td>Tempat, Tgl Lahir</td><td>: <span id="resTTL"></span></td></tr>
+        <tr><td>Jenis Kelamin</td><td>: <span id="resGender"></span></td></tr>
+        <tr><td>NISN</td><td>: <span id="resNISN"></span></td></tr>
+        <tr><td>Kelas</td><td>: <span id="resKelas"></span></td></tr>
+        <tr><td>Keterangan</td><td>: <span id="resKet"></span></td></tr>
+      </table>
+      
+      <div class="text-center mt-4 border-top pt-2">
+        <p class="mb-0" style="font-size: 0.9rem;">Berdasarkan nilai rata-rata rapor, ujian madrasah, dan sikap peserta didik, serta hasil sidang kelulusan, maka peserta didik tersebut dinyatakan :</p>
+      </div>
+      <div class="alert text-center py-4 my-3" id="alertBox">
+        <h2 class="mb-0 fw-bold" id="resHasil"></h2>
+      </div>
+      <div class="text-center mt-4 border-top pt-2">
+        <div style="height: 10px;"></div> <p class="fw-bold mb-0"><u>PESAN MADRASAH :</u></p>
+      </div>
+      <p class="mb-0" style="font-size: 0.9rem;">1. Bagi yang LULUS, agar tidak melaksanakan kegiatan diluar agenda Madrasah</p>
+      <p class="mb-0" style="font-size: 0.9rem;">2. Bagi yang dinyatakan TIDAK LULUS, segera berkonsultasi dengan pihak Madrasah/Wali Kelas</p>
+      <p class="mb-0" style="font-size: 0.9rem;">3. Pelaksanaan wisuda atau penerimaan ijazah akan disampaikan kemudian</p>
+      <div class="row mt-4">
+        <div class="col-6 small text-muted align-self-end">
+          <p class="mb-0">Dicetak pada: <span id="printTime"></span></p>
+        </div>
+        <div class="col-6 text-center">
+          <p class="mb-0">Jombang, <span id="resTglAnnounce"></span></p>
+          <p class="fw-bold">Kepala Madrasah,</p>
+          <br>
+          <p class="fw-bold">ttd</p>
+          <div style="height: 20px;"></div> <p class="fw-bold mb-0"><u>AGUS ARIF, M.Pd.</u></p>
+          <p class="small">NIP. 197903022007101004</p>
+        </div>
+      </div>
+      
+      <div class="text-center mt-4 border-top pt-2">
+        <p class="fw-bold mb-0" style="font-size: 0.9rem;">@2026 Humas MTsN 18 Jombang</p>
+      </div>
+    </div>
+    
+    <div class="d-grid gap-2 mt-3 no-print">
+      <button class="btn btn-success btn-lg" onclick="window.print()">Cetak SKL (File PDF)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function prosesCari() {
+    const nisn = document.getElementById('nisnInput').value;
+    if(!nisn) return alert('Masukkan NISN terlebih dahulu!');
+    
+    toggleLoading(true);
+    
+    google.script.run
+      .withSuccessHandler(showResult)
+      .withFailureHandler(showError)
+      .cariSiswa(nisn);
+  }
+
+  function showResult(response) {
+    toggleLoading(false);
+    if(response.success) {
+      const d = response.data;
+      document.getElementById('resNama').innerText = d.nama;
+      document.getElementById('resTTL').innerText = d.ttl;
+      document.getElementById('resGender').innerText = d.gender;
+      document.getElementById('resNISN').innerText = d.nisn;
+      document.getElementById('resKelas').innerText = d.kelas;
+      document.getElementById('resKet').innerText = d.keterangan;
+      document.getElementById('resTglAnnounce').innerText = d.tglPengumuman;
+      
+      const hasilElem = document.getElementById('resHasil');
+      const alertBox = document.getElementById('alertBox');
+      hasilElem.innerText = d.hasil;
+      
+      // Styling Status
+      alertBox.className = "alert text-center py-4 my-3 ";
+      if(d.hasil.includes("TERBAIK")) {
+        hasilElem.className = "status-terbaik";
+        alertBox.classList.add("alert-warning");
+      } else if(d.hasil === "LULUS") {
+        hasilElem.className = "status-lulus";
+        alertBox.classList.add("alert-success");
+      } else {
+        hasilElem.className = "status-tidak-lulus";
+        alertBox.classList.add("alert-danger");
+      }
+      
+      document.getElementById('printTime').innerText = new Date().toLocaleString('id-ID');
+      document.getElementById('resultArea').style.display = 'block';
+    } else {
+      alert(response.msg);
+    }
+  }
+
+  function toggleLoading(show) {
+    document.getElementById('loader').classList.toggle('d-none', !show);
+    document.getElementById('btnCari').disabled = show;
+  }
+
+  function showError(e) {
+    toggleLoading(false);
+    alert('Terjadi kesalahan sistem: ' + e.message);
+  }
+</script>
+</body>
+</html>
